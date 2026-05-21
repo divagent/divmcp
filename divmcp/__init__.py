@@ -1,0 +1,1 @@
+"""Dividend MCP service."""

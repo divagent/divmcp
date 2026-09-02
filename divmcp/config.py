@@ -1,6 +1,17 @@
+"""Runtime configuration, sourced from environment / `.env`.
+
+Deliberately tiny: the whole service needs one secret (the web-search key) and a
+couple of safety limits. Keep it that way — new tools add their own keys here.
+"""
+
+from __future__ import annotations
+
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Values that mean "not really set" — treated as absent so the tool fails soft.
+_PLACEHOLDERS = {"", "changeme", "none", "ff", "your-key-here"}
 
 
 class Settings(BaseSettings):
@@ -10,12 +21,18 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    DIVCORE_BASE_URL: str = "http://127.0.0.1:8000"
-    DIVCORE_AUTH_USERNAME: str = "mcp"
-    DIVCORE_ADMIN_PASSWORD: str = "admin123"
-    DIVCORE_TIMEOUT_SECONDS: float = 30.0
+    # web_search — Tavily is the generic search "sense". Absent key => tool skips.
+    TAVILY_API_KEY: str = ""
+
+    # fetch_url safety limits.
+    FETCH_TIMEOUT_SECONDS: float = 20.0
+    FETCH_MAX_CHARS: int = 8000
+
+    @property
+    def tavily_ready(self) -> bool:
+        return self.TAVILY_API_KEY.strip().lower() not in _PLACEHOLDERS
 
 
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     return Settings()

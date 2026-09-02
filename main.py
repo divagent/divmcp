@@ -1,34 +1,36 @@
-from fastapi import FastAPI
-from fastapi_mcp import FastApiMCP
+"""ASGI entrypoint — mounts the MCP server on a FastAPI app.
 
-from divmcp.config import get_settings
-from divmcp.tools import router as tools_router
+FastAPI Cloud (and `fastapi dev`) look for `app` here. The MCP streamable-HTTP app
+is mounted at `/mcp`; because the server sets `streamable_http_path="/"`, the actual
+MCP endpoint is exactly `/mcp`. `/health` is a plain liveness check.
+"""
+
+from __future__ import annotations
+
+import contextlib
+from collections.abc import AsyncIterator
+
+from fastapi import FastAPI
+
+from divmcp.server import mcp
+
+
+@contextlib.asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    # The session manager must be running for the streamable-HTTP app to serve.
+    async with mcp.session_manager.run():
+        yield
 
 
 app = FastAPI(
-    title="Dividend MCP",
-    version="0.1.0",
-    description="HTTP MCP service exposing dividend tools backed by divcore.",
+    title="divmcp",
+    description="The dividend agent's reach — web search + fetch, exposed as MCP tools.",
+    lifespan=lifespan,
 )
 
-app.include_router(tools_router)
+app.mount("/mcp", mcp.streamable_http_app())
 
 
-@app.get("/health", tags=["health"])
-def health():
-    settings = get_settings()
-    return {
-        "status": "ok",
-        "divcore_base_url": settings.DIVCORE_BASE_URL,
-    }
-
-
-mcp = FastApiMCP(
-    app,
-    name="Dividend MCP",
-    description="MCP tools for dividend snapshots, symbol universe, ingestion refresh, and RAG search.",
-    include_tags=["mcp-tools"],
-    describe_full_response_schema=True,
-    describe_all_responses=True,
-)
-mcp.mount_http(mount_path="/mcp")
+@app.get("/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok", "service": "divmcp"}

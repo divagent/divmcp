@@ -9,6 +9,7 @@ this app at `/mcp`, the MCP endpoint lands exactly at `/mcp` (not `/mcp/mcp`).
 from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
 mcp = FastMCP(
     name="divmcp",
@@ -25,6 +26,25 @@ mcp = FastMCP(
     stateless_http=True,
     json_response=True,
     streamable_http_path="/",
+    # mcp>=1.9 enables DNS-rebinding protection by default with an EMPTY host
+    # allowlist, so the streamable-HTTP app 421s ("Invalid Host header") on any
+    # Host — including our public FastAPI Cloud domain — which broke the agent's
+    # initialize handshake. Keep the protection ON and allow the hosts we actually
+    # serve on: the public domain (prod) and localhost (dev). ":*" allows any port.
+    transport_security=TransportSecuritySettings(
+        allowed_hosts=[
+            "dividend-mcp.fastapicloud.dev",
+            "localhost",
+            "localhost:*",
+            "127.0.0.1",
+            "127.0.0.1:*",
+        ],
+        allowed_origins=[
+            "https://dividend-mcp.fastapicloud.dev",
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+        ],
+    ),
 )
 
 # Register tools onto the instance above. Import placement (after `mcp` exists)

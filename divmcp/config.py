@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     # web_search — Tavily is the generic search "sense". Absent key => tool skips.
     TAVILY_API_KEY: str = ""
 
+    # market_news — Exa is the market-news "sense" (semantic, recency-aware search
+    # of the day's story). Absent key => the tool skips (fail-soft like the rest).
+    EXA_API_KEY: str = ""
+
     # fetch_url safety limits.
     FETCH_TIMEOUT_SECONDS: float = 20.0
     FETCH_MAX_CHARS: int = 8000
@@ -31,6 +35,10 @@ class Settings(BaseSettings):
     @property
     def tavily_ready(self) -> bool:
         return self.TAVILY_API_KEY.strip().lower() not in _PLACEHOLDERS
+
+    @property
+    def exa_ready(self) -> bool:
+        return self.EXA_API_KEY.strip().lower() not in _PLACEHOLDERS
 
 
 @lru_cache

@@ -9,10 +9,11 @@ from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 
-from divmcp.tools import dividend, fetch, search
+from divmcp.tools import dividend, fetch, market, search
 
 
 def register_all(mcp: FastMCP) -> None:
     search.register(mcp)
     fetch.register(mcp)
     dividend.register(mcp)
+    market.register(mcp)
